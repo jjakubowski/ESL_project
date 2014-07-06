@@ -31,7 +31,7 @@ end MD5SlaveInterface;
 architecture rtl of MD5SlaveInterface is
 	
 	 constant hconfig : ahb_config_type := (
-        0 => ahb_device_reg (VENDOR_ESL, ESL_MD5, 0, 0, 0),
+        0 => ahb_device_reg (VENDOR_OPENCHIP, OPENCHIP_AHBMD5, 0, 0, 0),
 		  4 => ahb_membar(haddr, '0', '0', hmask),
 		others => zero32);
 		

@@ -57,7 +57,7 @@ package devices is
   constant VENDOR_CAL        : amba_vendor_type := 16#CA#;
   constant VENDOR_CETON      : amba_vendor_type := 16#CB#;
   constant VENDOR_EMBEDDIT   : amba_vendor_type := 16#EA#;
-  constant VENDOR_ESL		 : amba_vendor_type := 16#FA#; --added 
+
   
 -- Embedded System Lab device ids
 
@@ -254,6 +254,7 @@ package devices is
   constant OPENCHIP_APB1WIRE    : amba_device_type := 16#00C#;
   constant OPENCHIP_APBJTAG     : amba_device_type := 16#00D#;
   constant OPENCHIP_APBSUI      : amba_device_type := 16#00E#;
+  constant OPENCHIP_AHBMD5		: amba_device_type := 16#00F#; -- added
 
 
 -- Gleichmann's device id's
@@ -524,20 +525,7 @@ package devices is
    );
 
 
---added
 
-  constant ESL_DESC  : vendor_description := "Embedded Systems Lab    ";
-  
-  constant esl_device_table 	 : device_table_type := (
-    ESL_MD5 			=> "ESYLAB MD5  AHB Controller     ",
-    others				=> "Unknown Device                 ");
-
-
-    constant esl_lib : vendor_library_type := (
-    vendorid 	        => VENDOR_ESL,
-    vendordesc          => ESL_DESC,
-    device_table        => esl_device_table
-  );
 
 
 
@@ -558,6 +546,7 @@ package devices is
     OPENCHIP_APB1WIRE   => "APB 1-Wire Interface           ",
     OPENCHIP_APBJTAG    => "APB JTAG TAP Master            ",
     OPENCHIP_APBSUI     => "APB Simple User Interface      ",
+    OPENCHIP_AHBMD5		=> "ESYLAB AHB MD5 Controller      ",
 
     others              => "Unknown Device                 ");
 
