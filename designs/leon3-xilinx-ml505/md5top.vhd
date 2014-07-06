@@ -64,6 +64,27 @@ architecture rtl of MD5top_module is
 		     hash_in: in HashReg_t
 			  );		  
 	 end component MD5Memory;
+	 
+	 
+	 component MD5MasterInterface is
+			generic (
+				hindex   : integer := 0;
+				haddr    : integer := 0;
+				hmask    : integer := 16#fff#
+				);
+			Port ( 	rst : in  std_ulogic;
+					clk : in  std_ulogic;
+					ahbi : in  ahb_mst_in_type;
+					length_in : in std_logic_vector(5 downto 0);  
+					start_dma: in std_logic;
+					address: in std_logic_vector(31 downto 0);
+			  
+					ahbo : out ahb_mst_out_type;
+					dataToChunk: out std_logic_vector(31 downto 0); 
+					newAddress : out std_logic_vector(31 downto 0); 
+					dmaEnd : out std_ulogic := '0'	
+           );
+	 end component MD5MasterInterface;
         
 -------------------------------------------------------------------------------        
         
@@ -100,6 +121,13 @@ port map(rst	=> rst,
 		 chunk_in => chunk_dma_memory,
 		 hash_in => hash_md5_memory
 		 );
+		 
+MD5MASTER : MD5MasterInterface
+generic map(hindex => hindex, haddr => haddr, hmask => 16#fff#)
+port map(rst,clk,ahbi,ahbo,length_in,
+	 start_dma, address, dataToChunk,
+	 newAddress, dmaEnd
+	 );
 
 ----------------------------------------------------------------------------	 
 	 
