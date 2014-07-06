@@ -27,12 +27,7 @@ end MD5top_module;
 
 architecture rtl of MD5top_module is
 	
-	 constant hconfig : ahb_config_type := (
-        0 => ahb_device_reg (VENDOR_ESL, ESL_MD5, 0, 0, 0),
-        4 => ahb_membar(haddr, '0', '0', hmask),
-		others => zero32);
-
-        
+     
        
 ---------------------Component declarance------------------------------------
        
@@ -44,8 +39,8 @@ architecture rtl of MD5top_module is
 				);
 			Port ( 	rst : in  std_ulogic;
 					clk : in  std_ulogic;
-					ahbi : in  ahb_slv_in_type;
-					ahbo : out ahb_slv_out_type;
+					ahbsi : in  ahb_slv_in_type;
+					ahbso : out ahb_slv_out_type;
 					reg_addr: out std_logic_vector (6 downto 0);
 					reg_we: out std_logic;
 					reg_data_wr: out std_logic_vector ( 31 downto 0);
@@ -56,17 +51,30 @@ architecture rtl of MD5top_module is
 		 
 		 
 	 component MD5Memory is
-			Port (	rst : in  std_ulogic;
-					clk : in  std_ulogic;
-					reg_addr: in std_logic_vector (6 downto 0);
-					reg_we: in std_logic;
-					reg_data_wr: in std_logic_vector (31 downto 0);
-					reg_data_rd: out std_logic_vector (31 downto 0));
+	 Port ( rst : in  std_ulogic;
+           clk : in  std_ulogic;
+			  reg_addr: in std_logic_vector (6 downto 0);
+		     reg_we: in std_logic;
+		     reg_data_wr: in std_logic_vector(31 downto 0);
+		     reg_data_rd: out std_logic_vector(31 downto 0);
+		     control_signals_out: out memory_controller_out_t;
+		     control_signals_in: in memory_controller_in_t;
+		     chunk_out : out ChunkReg_t;
+		     chunk_in : in ChunkReg_t;
+		     hash_in: in HashReg_t
+			  );		  
 	 end component MD5Memory;
         
 -------------------------------------------------------------------------------        
         
-		signal memory_inter: memory_t;
+		signal slave_memory_inter: slave_memory_t;
+		signal memory_md5_inter: memory_md5_t;
+		signal memory_controller_in_inter : memory_controller_in_t;
+		signal memory_controller_out_inter : memory_controller_out_t;
+		signal chunk_dma_memory: ChunkReg_t;
+		signal chunk_memory_md5: ChunkReg_t;
+		signal hash_md5_memory: HashReg_t;
+		
 		
 		--signal r,rin: registers;
 begin
@@ -74,24 +82,24 @@ begin
 ------------------Component instance----------------------------------------
 
 MD5SLAVE : MD5SlaveInterface
-port map(rst => rst,
-			clk => clk,
-			ahbi => ahbsi,
-			ahbo => ahbso,
-			reg_addr => memory_inter.reg_addr,
-			reg_we =>  memory_inter.reg_we,
-			reg_data_wr => memory_inter.reg_data_wr,
-			reg_data_rd => memory_inter.reg_data_rd
+generic map(hindex => hindex, haddr => haddr, hmask => 16#fff#)
+port map(rst,clk,ahbsi,ahbso,slave_memory_inter.reg_addr,
+	 slave_memory_inter.reg_we, slave_memory_inter.reg_data_wr,
+         slave_memory_inter.reg_data_rd
 			);
-
-
---MD5MEMORY : MD5Memory
---port map(rst	=> rst,
---		 clk	=> clk,
---		 reg_addr => memory_inter.reg_addr,
---		 reg_we		=> memory_inter.reg_we,
---		 reg_data_wr	=> memory_inter.reg_data_wr,
---		 reg_data_rd	=> memory_inter.reg_data_rd);
+MD5Mem : MD5Memory
+port map(rst	=> rst,
+		 clk	=> clk,
+		 reg_addr => slave_memory_inter.reg_addr,
+		 reg_we		=> slave_memory_inter.reg_we,
+		 reg_data_wr	=> slave_memory_inter.reg_data_wr,
+		 reg_data_rd	=> slave_memory_inter.reg_data_rd,
+		 control_signals_out => memory_controller_out_inter,
+		 control_signals_in => memory_controller_in_inter,
+		 chunk_out => chunk_memory_md5,
+		 chunk_in => chunk_dma_memory,
+		 hash_in => hash_md5_memory
+		 );
 
 ----------------------------------------------------------------------------	 
 	 
