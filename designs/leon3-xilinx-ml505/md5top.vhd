@@ -124,9 +124,16 @@ port map(rst	=> rst,
 		 
 MD5MASTER : MD5MasterInterface
 generic map(hindex => hindex, haddr => haddr, hmask => 16#fff#)
-port map(rst,clk,ahbi,ahbo,length_in,
-	 start_dma, address, dataToChunk,
-	 newAddress, dmaEnd
+port map(rst => rst,
+		 clk =>clk,
+		 ahbi => ahbi,
+		 ahbo =>ahbo,
+		 length_in => memory_controller_out_t.dma_length,
+		 start_dma => memory_controller_out_t.start_dma,
+		 address => memory_controller_out_t.dma_address,
+		 dataToChunk => chunk_in,
+		 newAddress => memory_controller_in_t.new_address,
+		 dmaEnd => dma_done
 	 );
 
 ----------------------------------------------------------------------------	 
