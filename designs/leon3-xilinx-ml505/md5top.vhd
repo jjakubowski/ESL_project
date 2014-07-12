@@ -20,7 +20,9 @@ entity MD5top_module is
 	 Port ( rst : in  std_ulogic;
            clk : in  std_ulogic;
            ahbsi : in  ahb_slv_in_type;
-           ahbso : out ahb_slv_out_type
+           ahbso : out ahb_slv_out_type;
+		   ahbmi : in  ahb_mst_in_type;
+		   ahbmo : out ahb_mst_out_type
            );
 			  
 end MD5top_module;
@@ -60,8 +62,9 @@ architecture rtl of MD5top_module is
 		     control_signals_out: out memory_controller_out_t;
 		     control_signals_in: in memory_controller_in_t;
 		     chunk_out : out ChunkReg_t;
-		     chunk_in : in ChunkReg_t;
-		     hash_in: in HashReg_t
+		     chunk_in : in std_logic_vector(31 downto 0);
+		     hash_in: in HashReg_t;
+		     data_ready: in std_logic
 			  );		  
 	 end component MD5Memory;
 	 
@@ -82,19 +85,37 @@ architecture rtl of MD5top_module is
 					ahbo : out ahb_mst_out_type;
 					dataToChunk: out std_logic_vector(31 downto 0); 
 					newAddress : out std_logic_vector(31 downto 0); 
-					dmaEnd : out std_ulogic := '0'	
+					dmaEnd : out std_ulogic;
+					DataReady: out std_logic					
            );
 	 end component MD5MasterInterface;
-        
+--		
+--	 component MD5Controller is
+--    Port ( nrst : in  std_ulogic;
+--           clk : in  std_ulogic;
+--			  startACK : in  STD_LOGIC;
+--           hash_ready : in  STD_LOGIC;
+--           start_hash : in  STD_LOGIC;
+--           continue_hash : in  STD_LOGIC;
+--           continue : out  STD_LOGIC;
+--           start : out  STD_LOGIC;
+--           hash_done : out  STD_LOGIC);
+--
+--		  			  
+--	end component MD5Controller;
 -------------------------------------------------------------------------------        
         
 		signal slave_memory_inter: slave_memory_t;
 		signal memory_md5_inter: memory_md5_t;
 		signal memory_controller_in_inter : memory_controller_in_t;
 		signal memory_controller_out_inter : memory_controller_out_t;
-		signal chunk_dma_memory: ChunkReg_t;
+		signal chunk_dma_memory: std_logic_vector (31 downto 0);
 		signal chunk_memory_md5: ChunkReg_t;
 		signal hash_md5_memory: HashReg_t;
+--		signal startACK: std_logic;
+--		signal hash_ready: std_logic;
+--		signal start:std_logic;
+		
 		
 		
 		--signal r,rin: registers;
@@ -119,22 +140,38 @@ port map(rst	=> rst,
 		 control_signals_in => memory_controller_in_inter,
 		 chunk_out => chunk_memory_md5,
 		 chunk_in => chunk_dma_memory,
-		 hash_in => hash_md5_memory
+		 hash_in => hash_md5_memory,
+		 data_ready =>memory_controller_in_inter.data_ready
 		 );
 		 
 MD5MASTER : MD5MasterInterface
 generic map(hindex => hindex, haddr => haddr, hmask => 16#fff#)
 port map(rst => rst,
 		 clk =>clk,
-		 ahbi => ahbi,
-		 ahbo =>ahbo,
-		 length_in => memory_controller_out_t.dma_length,
-		 start_dma => memory_controller_out_t.start_dma,
-		 address => memory_controller_out_t.dma_address,
-		 dataToChunk => chunk_in,
-		 newAddress => memory_controller_in_t.new_address,
-		 dmaEnd => dma_done
+		 ahbi => ahbmi,
+		 ahbo => ahbmo,
+		 length_in => memory_controller_out_inter.dma_length,
+		 start_dma => memory_controller_out_inter.start_dma,
+		 address => memory_controller_out_inter.dma_address,
+		 dataToChunk => chunk_dma_memory,
+		 newAddress => memory_controller_in_inter.new_address,
+		 dmaEnd => memory_controller_in_inter.dma_done,
+		 DataReady => memory_controller_in_inter.data_ready
 	 );
+
+--MD5CONTROLLER: MD5Controller
+--port map(rst=>rst,
+--			clk=>clk,
+--			startACK : in  STD_LOGIC;
+--         hash_ready : in  STD_LOGIC;
+--         start_hash : in  STD_LOGIC;
+--         continue_hash : in  STD_LOGIC;
+--         continue : out  STD_LOGIC;
+--         start : out  STD_LOGIC;
+--         hash_done : out  STD_LOGIC);
+--
+--		  			  
+--end MD5Controller;
 
 ----------------------------------------------------------------------------	 
 	 

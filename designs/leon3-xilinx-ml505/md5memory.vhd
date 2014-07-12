@@ -18,8 +18,9 @@ entity MD5Memory is
 		     control_signals_out: out memory_controller_out_t;
 		     control_signals_in: in memory_controller_in_t;
 		     chunk_out : out ChunkReg_t;
-		     chunk_in : in ChunkReg_t;
-		     hash_in: in HashReg_t
+		     chunk_in : in std_logic_vector(31 downto 0);
+		     hash_in: in HashReg_t;
+		     data_ready:in std_logic
 			  );		  
 			  
 end MD5Memory;
@@ -32,11 +33,15 @@ architecture rtl of MD5Memory is
 			ControlReg: std_logic_vector(31 downto 0);
 			AddressReg:	std_logic_vector(31 downto 0);
 			StatusReg:	std_logic_vector(31 downto 0);
+			
+			counter: integer range  0 to 31;
      
      end record;
         
 
     signal r, rin : registers;
+    
+    
 
 
 begin
@@ -72,12 +77,29 @@ begin
 		  if(r.ControlReg(3) = '1') then --clear dma start in next cycle
 			v.ControlReg(3) := '0';
 		  end if;
+		  
+		  if control_signals_in.dma_done = '1' then  --counter reset on dma_done
+			v.counter := 0;
+		  end if;
+		  
+	
+		  if control_signals_in.data_ready = '1' then
+			
+			
+			v.ChunkReg(r.counter) := chunk_in;
+			
+			if r.counter /= 31 then
+				v.counter := r.counter + 1;
+			else
+				v.counter := 0;
+			end if;
+		  end if;
 		  v.StatusReg(0) := not control_signals_in.hash_done;
 		  v.StatusReg(1) := not control_signals_in.dma_done;
 		  
 		  v.HashReg := hash_in;	  
 		  
-		  v.ChunkReg := chunk_in;
+		  
 		  
 -- read register
         readdata := (others => '0');
@@ -166,7 +188,7 @@ begin
 			  for i in 0 to 15 loop
 			  v.ChunkReg(i) := (others => '0');
 			  end loop;
-
+			  v.counter := 0;
 			  
 			  
         end if;

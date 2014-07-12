@@ -1067,7 +1067,9 @@ component MD5top_module is
 	 Port ( rst : in  std_ulogic;
            clk : in  std_ulogic;
            ahbsi : in  ahb_slv_in_type;
-           ahbso : out ahb_slv_out_type
+           ahbso : out ahb_slv_out_type;
+		     ahbmi : in  ahb_mst_in_type;
+		     ahbmo : out ahb_mst_out_type
 		  );
 	end component;
 	

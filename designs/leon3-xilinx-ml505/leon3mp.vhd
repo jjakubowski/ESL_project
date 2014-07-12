@@ -735,7 +735,7 @@ begin
 
 md5top0: MD5top_module
 	generic map(hindex =>5, haddr=> 16#600#,hmask =>16#fff#)
-	port map(rst =>rstn, clk => clkm, ahbsi=>ahbsi, ahbso=>ahbso(5));
+	port map(rst =>rstn, clk => clkm, ahbsi=>ahbsi, ahbso=>ahbso(5),ahbmi => ahbmi , ahbmo=>ahbmo(5));
 	
 	
 	

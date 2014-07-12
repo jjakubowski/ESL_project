@@ -33,7 +33,8 @@ package interfaces is
 		new_address : std_logic_vector (31 downto 0);
 		dma_done	: std_logic;
 		hash_done: std_logic;
-	
+	    data_ready: std_logic;
+	    
 	end record memory_controller_in_t;
 	
 	

@@ -52,77 +52,150 @@ entity MD5MasterInterface is
            ahbo : out ahb_mst_out_type;
 			  dataToChunk: out std_logic_vector(31 downto 0); 
 			  newAddress : out std_logic_vector(31 downto 0); 
-			  dmaEnd : out std_ulogic := '0'	
+			  dmaEnd : out std_ulogic;	 --changed JJ
+			  DataReady: out std_logic
 			  );
 end MD5MasterInterface;
 
 architecture Behavioral of MD5MasterInterface is
 
 	 constant hconfig : ahb_config_type := (
-        0 => ahb_device_reg (VENDOR_OPENCHIP, OPENCHIP_APBSPI, 0, 0, 0),
-        4 => ahb_membar(haddr, '1', '0', hmask),
+        0 => ahb_device_reg (VENDOR_OPENCHIP, OPENCHIP_AHBMD5, 0, 0, 0),
+		4 => ahb_membar(haddr, '0', '0', hmask),
 		others => zero32);
 		  
-	 signal readData: std_logic_vector(31 downto 0);
-	 signal readAddress: std_logic_vector(31 downto 0);
-	 signal counter: std_logic_vector(5 downto 0);
+
 	 type registers is record
-          readData :  std_logic_vector(31 downto 0);
+			 --readData :  std_logic_vector(31 downto 0);
 			 readAddress :  std_logic_vector(31 downto 0);
-			 counter: std_logic_vector(5 downto 0);
+			 counter: integer range 0 to 64;
+			 working: std_logic;
+			 length: integer range 0 to 64;
     end record;
+    
     signal r, rin : registers;
 	
 begin
 combinatorial : process(rst, r, ahbi, start_dma, address)
 	variable v	: registers;
-	variable tempAddress : std_logic_vector(31 downto 0);	
+
 	constant increment : std_logic_vector(31 downto 0) := x"00000004";
 
 	begin
 		  v := r;
-		  if ahbi.hgrant(hindex) = '1' then
-			  if (start_dma='1')and(v.counter < length_in) then
-					if(v.counter="000000") then
-						v.readAddress := address;
-					else 
-						null;
-					end if;
-					dmaEnd <= '0';
-					ahbo.hbusreq <= '1'; 
-					ahbo.hlock <='1';
-					ahbo.haddr <= v.readAddress;
-					tempAddress := v.readAddress;
-					v.readAddress := v.readAddress+increment;
-					v.counter := v.counter + "000001";
-					if (tempAddress = v. readAddress - increment) then 
-						v.readData := ahbi.hrdata;
-					else
-						null;
-					end if;
-			  else
-					dmaEnd <= '1';
-					v.readData := (others => '0');
-			  end if;
-		  
-			  if (rst = '0')or(start_dma='0') then
-					v.readData := (others => '0');
-					v.counter := (others => '0');
-			  else
-					null;
-			  end if;
-		  else
-			  null;
+		
+		  if rst = '0' then 
+			dmaEnd <= '1';
+			v.counter := 0;
+			v.working := '0';
+			v.length := 0;
+			v.readAddress := (others => '0');
+			newAddress <=   (others => '0');
+			dataToChunk <=  (others => '0');
+			
+		   
 		  end if;
+		  
+		  if start_dma = '1' then  --remember to pull down the flag
+		    
+			v.working := '1';
+			
+			if length_in = "000000" then  --on start_dma save length
+				v.length := 64;
+			else
+				v.length := to_integer(signed(length_in));
+			end if;
+			
+			v.readAddress := address;  --and address
+			v.counter := 0;  --reset counter
+			ahbo.hbusreq <= '1';     --bus request
+			dmaEnd <= '0';   --signalise work
+			
+		  
+		  
+		  elsif r.working = '1' and ahbi.hgrant(hindex) = '1' then  -- if bus granted  --CHANGE INDEX
+				 
+				if r.counter = 0 then  -- first iteration
+				
+					ahbo.haddr <= r.readAddress;
+					v.readAddress := r.readAddress + increment;				
+				
+				elsif r.counter >0 and r.counter < r.length		then					--iteration in range (1,length-1)
+				
+					ahbo.haddr <= r.readAddress;
+					newAddress <= r.readAddress;
+					v.readAddress := r.readAddress + increment;
+					
+					dataToChunk <= ahbi.hrdata;
+					DataReady <= '1';
+					
+				elsif r.counter = (r.length) then  -- last iteration
+				
+					dataToChunk <= ahbi.hrdata;
+					
+
+					v.working := '0';	
+					
+				
+				end if;
+				
+				v.counter := r.counter+1;
+				
+		 
+				
+		  else
+		  			dmaEnd <= '1';
+					DataReady <= '0';
+					ahbo.hbusreq <= '0'; 
+		
+
+		  end if;
+		  
+		  
+		  
+		  
+		  --if ahbi.hgrant(hindex) = '1' then
+			  --if (start_dma='1')and(v.counter < length_in) then
+					--if(v.counter="000000") then
+						--v.readAddress := address;
+					--else 
+						--null;
+					--end if;
+					--dmaEnd <= '0';
+					--ahbo.hbusreq <= '1'; 
+					--ahbo.hlock <='1';
+					--ahbo.haddr <= v.readAddress;
+					--tempAddress := v.readAddress;
+					--v.readAddress := v.readAddress+increment;
+					--v.counter := v.counter + "000001";
+					--if (tempAddress = v. readAddress - increment) then 
+						--v.readData := ahbi.hrdata;
+					--else
+						--null;
+					--end if;
+			  --else
+					--dmaEnd <= '1';
+					--v.readData := (others => '0');
+			  --end if;
+		  
+			  --if (rst = '0')or(start_dma='0') then
+					--v.readData := (others => '0');
+					--v.counter := (others => '0');
+			  --else
+					--null;
+			  --end if;
+		  --else
+			  --null;
+		  --end if;
 		  
 		  rin <= v;
 		   
-		  newAddress <= rin.readAddress; 
-		  dataToChunk <= rin.readData;
+		  --newAddress <= rin.readAddress; 
+		  --dataToChunk <= rin.readData;
 	end process;	
 	
-	 ahbo.hirq <= (others => '0');
-	 ahbo.hindex <= hindex;
+	ahbo.hirq <= (others => '0');
+	ahbo.hindex <= hindex;
     ahbo.hconfig <= hconfig;
 	
  sequential : process(clk)
